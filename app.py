@@ -1,39 +1,50 @@
 import streamlit as st
 from PIL import Image
-import torch
 from ultralytics import YOLO
 import pandas as pd
-import io
 
-st.set_page_config(page_title="WeldoneAI", layout="wide")
-st.title("WeldoneAI - Анализ сварных швов")
+# ----------------------------
+# Заголовок приложения
+# ----------------------------
+st.title("WeldoneAI - Прототип анализа сварных швов")
+st.write("Загружайте рентгеновские снимки, и модель YOLO покажет дефекты!")
 
-# Загружаем модель (кэшируем для ускорения)
-@st.cache_resource
-def load_model():
-    model = YOLO("best.pt")  # путь к твоей модели
+# ----------------------------
+# Загрузка модели
+# ----------------------------
+@st.cache_resource(show_spinner=True)
+def load_model(path="best.pt"):
+    model = YOLO(path)
     return model
 
 model = load_model()
+st.success("Модель загружена!")
 
-st.write("Модель загружена и готова к работе!")
-
-# Загрузка изображения пользователем
+# ----------------------------
+# Загрузка изображения
+# ----------------------------
 uploaded_file = st.file_uploader("Загрузите рентгеновский снимок", type=["jpg", "png"])
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Исходное изображение", use_container_width=True)
 
     # Инференс на CPU
-    results = model.predict(image, imgsz=640, device='cpu', half=False)
-    results.render()
-    st.image(results.imgs[0], caption="Результат модели", use_container_width=True)
+    with st.spinner("Модель обрабатывает изображение..."):
+        results = model.predict(image, imgsz=640, device='cpu', half=False)
+        result = results[0]  # первый результат
+        annotated_image = result.plot()  # возвращает np.ndarray с визуализацией
+
+    st.image(annotated_image, caption="Результат модели", use_container_width=True)
 
     # Таблица с результатами
-    df = results.pandas().xyxy[0]
-    st.subheader("Дефекты")
-    st.dataframe(df)
+    df = result.boxes.data if result.boxes is not None else []
+    if df != []:
+        df = pd.DataFrame(df.cpu().numpy(), columns=["x1","y1","x2","y2","confidence","class"])
+        st.subheader("Обнаруженные дефекты")
+        st.dataframe(df)
 
-    # Скачивание CSV
-    csv = df.to_csv(index=False)
-    st.download_button("Скачать CSV", csv, file_name="weldone_report.csv")
+        # Кнопка скачивания CSV
+        csv = df.to_csv(index=False)
+        st.download_button("Скачать CSV отчёт", csv, file_name="weldone_report.csv")
+    else:
+        st.info("Дефекты не обнаружены")
