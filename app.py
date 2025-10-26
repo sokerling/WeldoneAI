@@ -8,7 +8,7 @@ import io
 st.set_page_config(page_title="WeldoneAI", layout="wide")
 st.title("WeldoneAI - Анализ сварных швов")
 
-# 1️⃣ Загружаем модель (кэшируем для ускорения)
+# Загружаем модель (кэшируем для ускорения)
 @st.cache_resource
 def load_model():
     model = YOLO("best.pt")  # путь к твоей модели
@@ -18,25 +18,26 @@ model = load_model()
 
 st.write("Модель загружена и готова к работе!")
 
-# 2️⃣ Загрузка изображения пользователем
+# Загрузка изображения пользователем
 uploaded_file = st.file_uploader("Загрузите рентгеновский снимок", type=["jpg", "png"])
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Исходное изображение", use_column_width=True)
+    st.image(image, caption="Исходное изображение", use_container_width=True)
 
-    # 3️⃣ Получение предсказаний
+    # Получение предсказаний
     results = model.predict(image, imgsz=640, device=0, half=True)
 
-    # 4️⃣ Визуализация предсказаний
-    results.render()  # рисует рамки и маски прямо на image
-    st.image(results.imgs[0], caption="Результат модели", use_column_width=True)
+    # Инференс на CPU
+    results = model.predict(image, imgsz=640, device='cpu', half=False)
+    results.render()
+    st.image(results.imgs[0], caption="Результат модели", use_container_width=True)
 
-    # 5️⃣ Создание таблицы с предсказаниями
+    # Создание таблицы с предсказаниями
     df = results.pandas().xyxy[0]  # DataFrame с координатами и метками
     st.subheader("Детали дефектов")
     st.dataframe(df)
 
-    # 6️⃣ Скачивание CSV отчета
+    # Скачивание CSV отчета
     csv = df.to_csv(index=False)
     st.download_button(
         label="Скачать отчет CSV",
