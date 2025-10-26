@@ -3,15 +3,11 @@ from PIL import Image
 from ultralytics import YOLO
 import pandas as pd
 
-# ----------------------------
 # Заголовок приложения
-# ----------------------------
 st.title("WeldoneAI - Прототип анализа сварных швов")
 st.write("Загружайте рентгеновские снимки, и модель YOLO покажет дефекты!")
 
-# ----------------------------
 # Загрузка модели
-# ----------------------------
 @st.cache_resource(show_spinner=True)
 def load_model(path="best.pt"):
     model = YOLO(path)
@@ -20,9 +16,7 @@ def load_model(path="best.pt"):
 model = load_model()
 st.success("Модель загружена!")
 
-# ----------------------------
 # Загрузка изображения
-# ----------------------------
 uploaded_file = st.file_uploader("Загрузите рентгеновский снимок", type=["jpg", "png"])
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
