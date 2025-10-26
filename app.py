@@ -24,24 +24,16 @@ if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Исходное изображение", use_container_width=True)
 
-    # Получение предсказаний
-    results = model.predict(image, imgsz=640, device=0, half=True)
-
     # Инференс на CPU
     results = model.predict(image, imgsz=640, device='cpu', half=False)
     results.render()
     st.image(results.imgs[0], caption="Результат модели", use_container_width=True)
 
-    # Создание таблицы с предсказаниями
-    df = results.pandas().xyxy[0]  # DataFrame с координатами и метками
-    st.subheader("Детали дефектов")
+    # Таблица с результатами
+    df = results.pandas().xyxy[0]
+    st.subheader("Дефекты")
     st.dataframe(df)
 
-    # Скачивание CSV отчета
+    # Скачивание CSV
     csv = df.to_csv(index=False)
-    st.download_button(
-        label="Скачать отчет CSV",
-        data=csv,
-        file_name="weldone_report.csv",
-        mime="text/csv"
-    )
+    st.download_button("Скачать CSV", csv, file_name="weldone_report.csv")
